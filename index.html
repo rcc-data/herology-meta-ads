@@ -358,21 +358,12 @@ tbody td.primary { color: var(--t1); font-weight: 500; font-family: var(--font-b
 <!-- ═══ OVERVIEW ═══ -->
 <div class="tab-panel active" id="tab-overview">
 
-  <div class="hero-banner">
+  <div class="hero-banner" id="hero">
     <div class="hero-eyebrow">● Last 7 Days Summarised</div>
-    <div class="hero-heading">A quieter week, purchases holding steady.</div>
-    <div class="hero-subheading">Purchases flat, revenue down 7%.</div>
-    <p class="hero-body">
-      <strong style="color:var(--t2)">Fri 18 Sep 2026 – Thu 24 Sep 2026</strong> vs <strong style="color:var(--t2)">Fri 11 Sep 2026 – Thu 17 Sep 2026.</strong><br><br>
-      Spend pulled back <strong style="color:var(--t1)">-5.7%</strong> week-on-week. Purchase volume held steady, up <strong style="color:var(--t1)">1.0%</strong> to 393 conversions. Revenue fell to <strong style="color:var(--t1)">€24,965</strong> (-6.8% vs €26,777 prior). ROAS held roughly flat at <strong style="color:var(--t1)">2.42x</strong> from 2.45x, and CPP tightened to <strong style="color:var(--t1)">€26.27</strong> vs €28.13.
-    </p>
-    <div class="hero-stats">
-      <div class="hero-stat">💰 <strong>€24,965</strong> revenue <span style="color:var(--red);font-weight:700">↓-6.8%</span></div>
-      <div class="hero-stat">🛒 <strong>393 purchases</strong> <span style="color:var(--green);font-weight:700">↑+1.0%</span></div>
-      <div class="hero-stat">🎯 <strong>2.42x ROAS</strong> <span style="color:var(--red);font-weight:700">↓-1.2%</span> vs 2.45x</div>
-      <div class="hero-stat">💸 <strong>€26.27 CPP</strong> <span style="color:var(--green);font-weight:700">↓-6.6%</span> vs €28.13</div>
-      <div class="hero-stat">📈 <strong>€10,325 spend</strong> <span style="color:var(--red);font-weight:700">↓-5.7%</span></div>
-    </div>
+    <div class="hero-heading" id="hero-heading"></div>
+    <div class="hero-subheading" id="hero-sub"></div>
+    <p class="hero-body" id="hero-body"></p>
+    <div class="hero-stats" id="hero-stats"></div>
   </div>
 
   <div class="controls-bar">
@@ -389,7 +380,7 @@ tbody td.primary { color: var(--t1); font-weight: 500; font-family: var(--font-b
   </div>
 
   <div class="section-header">
-    <div class="section-title">Year to Date Totals</div>
+    <div class="section-title" id="ov-section-title">Totals</div>
     <div class="section-date" id="ov-date-label"></div>
   </div>
   <div class="kpi-grid" id="ov-kpis"></div>
@@ -641,6 +632,7 @@ const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','
 
 // ── RANGE BUTTONS ──
 function setRange(prefix,days){
+  markRangeBtn(prefix,days);
   const end=MAX_DATE;
   const start=days===0?MIN_DATE:subDays(MAX_DATE,days-1);
   if(prefix==='ov'){S.ov.start=start;S.ov.end=end;document.getElementById('ov-start').value=start;document.getElementById('ov-end').value=end;renderOverview();}
@@ -694,6 +686,8 @@ function renderOverview(){
   const rows=filterByDate(ACC,s,e).sort((a,b)=>a.date.localeCompare(b.date));
   if(!rows.length)return;
   const agg=aggregateRows(rows,FIELDS);
+  document.getElementById('ov-section-title').textContent=(s===MIN_DATE&&e===MAX_DATE)?'All-Time Totals':`Totals · ${rows.length} days`;
+  document.getElementById('ov-date-label').textContent=`${fmtDate(s)} – ${fmtDate(e)}`;
   const prevStart=subDays(s,rows.length),prevEnd=subDays(e,rows.length);
   const prev=aggregateRows(filterByDate(ACC,prevStart,prevEnd),FIELDS);
 
@@ -1258,6 +1252,62 @@ function sortCr(col){
   renderCreative();
 }
 
+
+// ── HERO SUMMARY (computed from ACC on every load — never hardcoded) ──
+// Window = last 7 days ending on the newest date in the data, vs the 7 days before.
+// Identical to the Overview 7D button, so banner and KPI cards always agree.
+function renderHero(){
+  const end=MAX_DATE, start=subDays(end,6);
+  const pEnd=subDays(start,1), pStart=subDays(pEnd,6);
+  const cur=aggregateRows(filterByDate(ACC,start,end),FIELDS);
+  const prv=aggregateRows(filterByDate(ACC,pStart,pEnd),FIELDS);
+  const pct=(a,b)=>(a==null||!b)?null:((a-b)/Math.abs(b))*100;
+  const d={spend:pct(cur.spend,prv.spend),revenue:pct(cur.revenue,prv.revenue),
+           purchases:pct(cur.purchases,prv.purchases),roas:pct(cur.roas,prv.roas),cpp:pct(cur.cpp,prv.cpp)};
+  const long=ds=>{const[y,m,dd]=ds.split('-').map(Number);const dt=new Date(y,m-1,dd);
+    return dt.toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short',year:'numeric'});};
+  const sg=v=>v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
+  const word=(v,up,down,flat)=>v==null?flat:(Math.abs(v)<2?flat:(v>0?up:down));
+  const P=d.purchases, R=d.revenue;
+  let heading;
+  if(P!=null&&P>=5&&R!=null&&R>=5) heading='A strong week — purchases and revenue both up.';
+  else if(P!=null&&P>=5)           heading='A strong week on purchases.';
+  else if(P!=null&&P<=-5&&R!=null&&R<=-5) heading='A softer week — purchases and revenue both down.';
+  else if(P!=null&&P<=-5)          heading='A softer week on purchases.';
+  else if(R!=null&&R>=5)           heading='Purchases steady, revenue up.';
+  else if(R!=null&&R<=-5)          heading='A quieter week, purchases holding steady.';
+  else                             heading='A steady week.';
+  const sub=`Purchases ${word(P,'up '+Math.abs(P||0).toFixed(0)+'%','down '+Math.abs(P||0).toFixed(0)+'%','flat')}, revenue ${word(R,'up '+Math.abs(R||0).toFixed(0)+'%','down '+Math.abs(R||0).toFixed(0)+'%','flat')}.`;
+  const b=v=>`<strong style="color:var(--t1)">${v}</strong>`;
+  const body=`<strong style="color:var(--t2)">${long(start)} – ${long(end)}</strong> vs <strong style="color:var(--t2)">${long(pStart)} – ${long(pEnd)}.</strong><br><br>`+
+    `Spend ${word(d.spend,'rose','pulled back','held flat')} ${b(sg(d.spend))} week-on-week to ${b(fmtCurrency(cur.spend,0))}. `+
+    `Purchases ${word(P,'rose','fell','held steady')} ${b(sg(P))} to ${fmtNum(cur.purchases)} conversions. `+
+    `Revenue ${word(R,'rose','fell','held flat')} to ${b(fmtCurrency(cur.revenue,0))} (${sg(R)} vs ${fmtCurrency(prv.revenue,0)} prior). `+
+    `ROAS ${word(d.roas,'improved to','slipped to','held at')} ${b(fmtX(cur.roas))} from ${fmtX(prv.roas)}, and CPP ${word(d.cpp,'rose to','tightened to','held at')} ${b(fmtCurrency(cur.cpp))} vs ${fmtCurrency(prv.cpp)}.`;
+  // colours follow the KPI cards: spend & CPP down = good
+  const chip=(icon,val,label,v,invert,extra='')=>{
+    if(v==null)return`<div class="hero-stat">${icon} <strong>${val}</strong> ${label}</div>`;
+    const good=invert?v<0:v>0, arrow=v>0?'↑':'↓';
+    return`<div class="hero-stat">${icon} <strong>${val}</strong> ${label} <span style="color:var(${good?'--green':'--red'});font-weight:700">${arrow}${sg(v)}</span>${extra}</div>`;};
+  document.getElementById('hero-heading').textContent=heading;
+  document.getElementById('hero-sub').textContent=sub;
+  document.getElementById('hero-body').innerHTML=body;
+  document.getElementById('hero-stats').innerHTML=
+    chip('💰',fmtCurrency(cur.revenue,0),'revenue',R,false)+
+    chip('🛒',fmtNum(cur.purchases)+' purchases','',P,false)+
+    chip('🎯',fmtX(cur.roas)+' ROAS','',d.roas,false,` vs ${fmtX(prv.roas)}`)+
+    chip('💸',fmtCurrency(cur.cpp)+' CPP','',d.cpp,true,` vs ${fmtCurrency(prv.cpp)}`)+
+    chip('📈',fmtCurrency(cur.spend,0)+' spend','',d.spend,true);
+}
+
+// ── RANGE BUTTON STATE ── highlight only the button actually in use
+function markRangeBtn(prefix,days){
+  const grp=document.getElementById(prefix+'-start').parentElement.querySelector('.btn-group');
+  if(!grp)return;
+  const map=[7,30,90,0];
+  grp.querySelectorAll('.btn').forEach((btn,i)=>btn.classList.toggle('active',days!=null&&map[i]===days));
+}
+
 // ── INIT ──
 function init(){
   document.getElementById('ov-start').value=MIN_DATE;
@@ -1267,12 +1317,14 @@ function init(){
   document.getElementById('cr-start').value ='2026-01-01';
   document.getElementById('cr-end').value   =MAX_DATE;
   document.getElementById('pd-date').value  =MAX_DATE;
+  renderHero();
+  ['ov','cam','cr'].forEach(p=>['start','end'].forEach(x=>
+    document.getElementById(p+'-'+x).addEventListener('change',()=>markRangeBtn(p,null))));
   renderOverview();
 }
 init();
 
 
-// Hero section uses hardcoded verified week-on-week figures (13-19 Apr vs 6-12 Apr 2026)
 
 // Update section date label on overview
 const _ovDateLabelOrig = renderOverview;
