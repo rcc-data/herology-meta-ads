@@ -372,10 +372,11 @@ tbody td.primary { color: var(--t1); font-weight: 500; font-family: var(--font-b
     <span style="color:var(--t3)">→</span>
     <input type="date" class="date-input" id="ov-end" onchange="renderOverview()">
     <div class="btn-group">
+      <button class="btn active" onclick="setRange('ov','mtd')">MTD</button>
       <button class="btn" onclick="setRange('ov',7)">7D</button>
       <button class="btn" onclick="setRange('ov',30)">30D</button>
       <button class="btn" onclick="setRange('ov',90)">90D</button>
-      <button class="btn active" onclick="setRange('ov',0)">ALL</button>
+      <button class="btn" onclick="setRange('ov',0)">ALL</button>
     </div>
   </div>
 
@@ -454,10 +455,11 @@ tbody td.primary { color: var(--t1); font-weight: 500; font-family: var(--font-b
     <span style="color:var(--t3)">→</span>
     <input type="date" class="date-input" id="cam-end" onchange="renderCampaigns()">
     <div class="btn-group">
+      <button class="btn active" onclick="setRange('cam','mtd')">MTD</button>
       <button class="btn" onclick="setRange('cam',7)">7D</button>
       <button class="btn" onclick="setRange('cam',30)">30D</button>
       <button class="btn" onclick="setRange('cam',90)">90D</button>
-      <button class="btn active" onclick="setRange('cam',0)">ALL</button>
+      <button class="btn" onclick="setRange('cam',0)">ALL</button>
     </div>
   </div>
   <div class="filter-bar" id="cam-filters"></div>
@@ -497,10 +499,11 @@ tbody td.primary { color: var(--t1); font-weight: 500; font-family: var(--font-b
     <span style="color:var(--t3)">→</span>
     <input type="date" class="date-input" id="cr-end" onchange="renderCreative()">
     <div class="btn-group">
+      <button class="btn active" onclick="setRange('cr','mtd')">MTD</button>
       <button class="btn" onclick="setRange('cr',7)">7D</button>
       <button class="btn" onclick="setRange('cr',30)">30D</button>
       <button class="btn" onclick="setRange('cr',90)">90D</button>
-      <button class="btn active" onclick="setRange('cr',0)">ALL</button>
+      <button class="btn" onclick="setRange('cr',0)">ALL</button>
     </div>
   </div>
   <div class="filter-bar" id="cr-filters"></div>
@@ -631,10 +634,12 @@ const FIELDS=['spend','revenue','roas','cpp','purchases','atc','hook_rate','hold
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // ── RANGE BUTTONS ──
+// Default view = Month to Date (1st of the latest data month -> latest date)
+function mtdStart(){const m=MAX_DATE.substring(0,8)+'01';return m<MIN_DATE?MIN_DATE:m;}
 function setRange(prefix,days){
   markRangeBtn(prefix,days);
   const end=MAX_DATE;
-  const start=days===0?MIN_DATE:subDays(MAX_DATE,days-1);
+  const start=days==='mtd'?mtdStart():(days===0?MIN_DATE:subDays(MAX_DATE,days-1));
   if(prefix==='ov'){S.ov.start=start;S.ov.end=end;document.getElementById('ov-start').value=start;document.getElementById('ov-end').value=end;renderOverview();}
   if(prefix==='cam'){S.cam.start=start;S.cam.end=end;document.getElementById('cam-start').value=start;document.getElementById('cam-end').value=end;renderCampaigns();}
   if(prefix==='cr'){S.cr.start=start;S.cr.end=end;document.getElementById('cr-start').value=start;document.getElementById('cr-end').value=end;renderCreative();}
@@ -1304,17 +1309,18 @@ function renderHero(){
 function markRangeBtn(prefix,days){
   const grp=document.getElementById(prefix+'-start').parentElement.querySelector('.btn-group');
   if(!grp)return;
-  const map=[7,30,90,0];
+  const map=['mtd',7,30,90,0];
   grp.querySelectorAll('.btn').forEach((btn,i)=>btn.classList.toggle('active',days!=null&&map[i]===days));
 }
 
 // ── INIT ──
 function init(){
-  document.getElementById('ov-start').value=MIN_DATE;
+  S.ov.start=S.cam.start=S.cr.start=mtdStart();
+  document.getElementById('ov-start').value=mtdStart();
   document.getElementById('ov-end').value  =MAX_DATE;
-  document.getElementById('cam-start').value=MIN_DATE;
+  document.getElementById('cam-start').value=mtdStart();
   document.getElementById('cam-end').value  =MAX_DATE;
-  document.getElementById('cr-start').value ='2026-01-01';
+  document.getElementById('cr-start').value =mtdStart();
   document.getElementById('cr-end').value   =MAX_DATE;
   document.getElementById('pd-date').value  =MAX_DATE;
   renderHero();
