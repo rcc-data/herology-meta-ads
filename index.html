@@ -706,15 +706,15 @@ function renderOverview(){
     {label:'Add to Cart',key:'atc',fmt:v=>fmtNum(v),color:'#ffb547'},
     {label:'Hook Rate',key:'hook_rate',fmt:fmtPct,color:'#f472b6'},
     {label:'Hold Rate',key:'hold_rate',fmt:fmtPct,color:'#fb923c'},
-    {label:'Frequency',key:'frequency',fmt:v=>fmtNum(v,2),color:'#94a3b8',invert:true},
     {label:'Link Clicks',key:'clicks',fmt:v=>fmtNum(v),color:'#38bdf8'},
   ];
   function segPct(a,b){const t={new:0,engaged:0,existing:0,unknown:0};Object.keys(SEG).forEach(d=>{if(d>=a&&d<=b){const x=SEG[d];for(const k in t)t[k]+=(x[k]||0);}});t.new+=t.engaged;t.engaged=0;const c=t.new+t.existing,tot=c+t.unknown;if(!tot||c/tot<0.5)return null;return{new:t.new/c*100,existing:t.existing/c*100};}
   const sg=segPct(s,e),sgp=segPct(prevStart,prevEnd);
-  const segCard=`<div class="kpi-card" style="--accent-color:#f59e0b">
-      <div class="kpi-label">Audience Split (Spend)</div>
-      <div class="kpi-value" style="font-size:15px;line-height:1.5">${sg?`<span style="color:#7c6cff">New ${sg.new.toFixed(1)}%</span><br><span style="color:#f59e0b">Existing ${sg.existing.toFixed(1)}%</span>`:'—'}</div>
-      <div class="kpi-sub">New incl. engaged${sg&&sgp?` · Existing ${(sg.existing-sgp.existing>=0?'+':'')+(sg.existing-sgp.existing).toFixed(1)}pt vs prev`:''}</div>
+  const segCard=`<div class="kpi-card" style="--accent-color:#7c6cff">
+      <div class="kpi-label">New vs Existing (Spend)</div>
+      ${sg?`<div style="display:flex;gap:22px;margin:6px 0 10px"><div><div class="kpi-value" style="color:#7c6cff">${sg.new.toFixed(0)}%</div><div class="kpi-sub">New</div></div><div><div class="kpi-value" style="color:#f59e0b">${sg.existing.toFixed(0)}%</div><div class="kpi-sub">Existing</div></div></div>
+      <div style="height:6px;border-radius:3px;background:#f59e0b;overflow:hidden"><div style="width:${sg.new.toFixed(1)}%;height:100%;background:#7c6cff"></div></div>
+      <div class="kpi-sub" style="margin-top:8px">New incl. engaged${sgp?` · Existing ${(sg.existing-sgp.existing>=0?'+':'')+(sg.existing-sgp.existing).toFixed(1)}pt vs prev`:''}</div>`:`<div class="kpi-value">—</div><div class="kpi-sub">Not enough classified data in range</div>`}
     </div>`;
   document.getElementById('ov-kpis').innerHTML=segCard+kpis.map(k=>{
     const d=delta(agg[k.key],prev[k.key],k.invert);
@@ -883,7 +883,6 @@ function renderPeriod(){
     {label:'Add to Cart',key:'atc',fmt:v=>fmtNum(v),color:'#ffb547'},
     {label:'Hook Rate',key:'hook_rate',fmt:fmtPct,color:'#f472b6'},
     {label:'Hold Rate',key:'hold_rate',fmt:fmtPct,color:'#fb923c'},
-    {label:'Frequency',key:'frequency',fmt:v=>fmtNum(v,2),color:'#94a3b8',invert:true},
     {label:'Link Clicks',key:'clicks',fmt:v=>fmtNum(v),color:'#38bdf8'},
   ];
 
